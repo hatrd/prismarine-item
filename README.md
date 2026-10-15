@@ -115,13 +115,20 @@ the item's custom lore (ie. set in give command)
 
 #### item.enchants
 
-#### get item.enchants(): { name: string, lvl: number }[]
+#### get item.enchants(): { name: string | null, lvl: number }[]
 
-Returns an array of enchants on the Item with their name and level
+Returns an array of enchants on the Item with their name and level. Unknown
+numeric IDs read as `name: null` without changing the serialized component.
+On Java 1.20.5+, reads resolved `enchantments` (or `stored_enchantments` for
+enchanted books); absent or explicitly removed components return an empty array.
+Legacy enchantment tags inside `custom_data` do not grant modern enchantments.
 
 #### set item.enchants({ name: string, lvl: number }[])
 
-Updates the Item's NBT enchantments based on assigned array
+Updates the Item's enchantments based on the assigned array of known names.
+On Java 1.20.5+, writes the same component state used by `Item.toNotch`, preserving
+component metadata and clearing a previous removal. Assigning `[]` writes an
+explicitly empty list. Earlier versions continue to write NBT enchantments.
 
 #### get item.blocksCanPlaceOn(): [name][]
 #### set item.blocksCanPlaceOn(blockNames: string[])

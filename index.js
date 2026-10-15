@@ -306,8 +306,11 @@ function loader (registryOrVersion) {
       const useStoredEnchantments = registry.supportFeature('booksUseStoredEnchantments') && this.name === 'enchanted_book'
 
       const componentName = useStoredEnchantments ? 'stored_enchantments' : 'enchantments'
-      if (this.componentMap?.has(componentName)) {
-        return this.componentMap.get(componentName).data.enchantments.map(({ id, level }) => ({
+      if (componentStates.has(this)) {
+        // Read resolved state so explicit removals agree with toNotch. Modern
+        // custom_data is not a source of applied or stored enchantments.
+        const data = componentStates.get(this).get(componentName)
+        return (data?.enchantments ?? []).map(({ id, level }) => ({
           name: registry.enchantments[id]?.name || null,
           lvl: level
         }))
@@ -345,11 +348,30 @@ function loader (registryOrVersion) {
     }
 
     set enchants (normalizedEnchArray) {
+      const useStoredEnchants = this.name === 'enchanted_book' && registry.supportFeature('booksUseStoredEnchantments')
+      if (componentStates.has(this)) {
+        const state = componentStates.get(this)
+        const componentName = useStoredEnchants ? 'stored_enchantments' : 'enchantments'
+        const enchantments = normalizedEnchArray.map(({ name, lvl }) => {
+          const enchantment = registry.enchantmentsByName[name]
+          if (!enchantment) throw new Error(`Unknown enchantment: ${name}`)
+          return { id: enchantment.id, level: lvl }
+        })
+        const data = state.get(componentName)
+        const tooltipKey = useStoredEnchants ? 'showInTooltip' : 'showTooltip'
+        // Tooltip visibility belongs to the component before 1.21.5. Preserve
+        // existing metadata and write a fresh payload, leaving decoded input alone.
+        state.set(componentName, {
+          ...(registry.version['<']('1.21.5') ? { [tooltipKey]: true } : {}),
+          ...data,
+          enchantments
+        })
+        return
+      }
+
       const enchListName = registry.supportFeature('nbtNameForEnchant')
       const type = registry.supportFeature('typeOfValueForEnchantLevel')
       if (!type) throw new Error("Don't know the serialized type for enchant level")
-
-      const useStoredEnchants = this.name === 'enchanted_book' && registry.supportFeature('booksUseStoredEnchantments')
 
       const enchs = normalizedEnchArray.map(({ name, lvl }) => {
         const value =
