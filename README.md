@@ -107,11 +107,23 @@ Returns the item's remaining durability, or `null` if the item is not damageable
 
 #### item.customName
 
-the item's custom name (ie. anvil name)
+The item's custom name as a JSON chat-component string, or `null` when absent.
+On Java 1.20.5+, assigning a JSON string encodes it as protocol NBT; plain text
+is accepted as a literal name. A typed NBT chat tag is also accepted, and an NBT
+string remains literal even when its text looks like JSON. Assign `null` to
+remove the component. Reads normalize NBT booleans to `0`/`1`.
 
 #### item.customLore
 
-the item's custom lore (ie. set in give command)
+The item's custom lore. On Java 1.20.5+, the getter returns an array of JSON
+chat-component strings (or `null`). The setter accepts an array of JSON strings
+or typed NBT chat tags; a single string is treated as one line. Assign `[]` for
+an empty list or `null` to remove the component. Chat arrays that mix shorthand
+text and objects are normalized to compounds for NBT's homogeneous list format.
+Conversion finishes before updating state, so invalid input leaves the old
+component and removal entries unchanged. Use the chat fields supported by the
+target Minecraft version; the setter does not translate chat schemas between
+versions.
 
 #### item.enchants
 
@@ -126,6 +138,8 @@ Legacy enchantment tags inside `custom_data` do not grant modern enchantments.
 #### set item.enchants({ name: string, lvl: number }[])
 
 Updates the Item's enchantments based on the assigned array of known names.
+Unknown names (including inherited JavaScript object keys) throw before any
+component or removal is changed.
 On Java 1.20.5+, writes the same component state used by `Item.toNotch`, preserving
 component metadata and clearing a previous removal. Assigning `[]` writes an
 explicitly empty list. Earlier versions continue to write NBT enchantments.

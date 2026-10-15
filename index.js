@@ -1,17 +1,6 @@
 const nbt = require('prismarine-nbt')
 const ItemComponents = require('./lib/components')
-
-// 1.20.5 moved the custom name and the lore into data components, which carry a chat component as
-// NBT; the display.Name and display.Lore tags they replaced carried the same component as the JSON
-// string the server wrote. Read the NBT back as that string so customName and customLore have one
-// shape on every version, the one index.d.ts promises. A JS string is already that JSON (the setters
-// store one), but an NBT string tag is the literal text, so it is quoted like any other component:
-// nbt.string('{"text":"Hello"}') is the text {"text":"Hello"}, not a component that renders Hello.
-function chatComponentJson (component) {
-  if (component == null || typeof component === 'string') return component
-  const value = typeof component.type === 'string' && 'value' in component ? nbt.simplify(component) : component
-  return JSON.stringify(value)
-}
+const chatComponent = require('./lib/chat-component')
 
 function loader (registryOrVersion) {
   const registry = typeof registryOrVersion === 'string' ? require('prismarine-registry')(registryOrVersion) : registryOrVersion
@@ -236,15 +225,15 @@ function loader (registryOrVersion) {
     get customName () {
       const fallback = () => this?.nbt?.value?.display?.value?.Name?.value ?? null
       // The 1.20.5+ component value and the legacy display.Name both read back as the JSON string shape (#189):
-      // chatComponentJson converts an NBT chat component and passes an existing string (the fallback) through unchanged.
-      return componentStates.has(this) ? chatComponentJson(componentStates.get(this).get('custom_name', fallback)) ?? null : fallback()
+      // toJson converts NBT chat components and preserves the legacy JSON fallback.
+      return componentStates.has(this) ? chatComponent.toJson(componentStates.get(this).get('custom_name', fallback)) ?? null : fallback()
     }
 
     set customName (newName) {
       if (this.componentMap) {
         const state = componentStates.get(this)
         if (newName == null) state.remove('custom_name')
-        else state.set('custom_name', newName)
+        else state.set('custom_name', chatComponent.toNbt(newName))
         return
       }
       if (!this.nbt) this.nbt = nbt.comp({})
@@ -258,15 +247,15 @@ function loader (registryOrVersion) {
       const lore = componentStates.get(this).get('lore', fallback)
       if (lore == null) return null
       // Lore components are an array of chat components; read each back as its JSON string (#189). The legacy fallback is
-      // already an array of strings, which chatComponentJson passes through unchanged.
-      return Array.isArray(lore) ? lore.map(chatComponentJson) : chatComponentJson(lore)
+      // already an array of strings, which toJson passes through unchanged.
+      return Array.isArray(lore) ? lore.map(chatComponent.toJson) : chatComponent.toJson(lore)
     }
 
     set customLore (newLore) {
       if (this.componentMap) {
         const state = componentStates.get(this)
         if (newLore == null) state.remove('lore')
-        else state.set('lore', newLore)
+        else state.set('lore', (Array.isArray(newLore) ? newLore : [newLore]).map(chatComponent.toNbt))
         return
       }
       if (!this.nbt) this.nbt = nbt.comp({})
@@ -353,8 +342,8 @@ function loader (registryOrVersion) {
         const state = componentStates.get(this)
         const componentName = useStoredEnchants ? 'stored_enchantments' : 'enchantments'
         const enchantments = normalizedEnchArray.map(({ name, lvl }) => {
+          if (!Object.hasOwn(registry.enchantmentsByName, name)) throw new Error(`Unknown enchantment: ${name}`)
           const enchantment = registry.enchantmentsByName[name]
-          if (!enchantment) throw new Error(`Unknown enchantment: ${name}`)
           return { id: enchantment.id, level: lvl }
         })
         const data = state.get(componentName)

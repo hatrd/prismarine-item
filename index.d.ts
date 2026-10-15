@@ -25,8 +25,10 @@ export class Item {
   get blocksCanDestroy(): [string][];
   set blocksCanDestroy(blockNames: string[]);
   repairCost: number;
-  customName: string | null;
-  customLore: string | string[] | null;
+  get customName(): string | null;
+  set customName(name: string | Tags[TagType] | null);
+  get customLore(): string | string[] | null;
+  set customLore(lore: string | (string | Tags[TagType])[] | null);
   get customModel(): string | null;
   readonly spawnEggMobName: string;
   static equal(item1: Item, item2: Item, matchStackSize?: boolean, matchNbt?: boolean): boolean;

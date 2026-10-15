@@ -659,7 +659,7 @@ describe('componentMap setters (1.20.5+)', () => {
   it('customName setter writes to componentMap when it exists', () => {
     const item = new Item(registry.itemsByName.diamond_sword.id, 1)
     item.customName = '{"text":"Cool Sword"}'
-    expect(item.componentMap.get('custom_name')).toStrictEqual({ type: 'custom_name', data: '{"text":"Cool Sword"}' })
+    expect(item.componentMap.get('custom_name')).toStrictEqual({ type: 'custom_name', data: nbt.comp({ text: nbt.string('Cool Sword') }) })
     expect(item.customName).toBe('{"text":"Cool Sword"}')
   })
 
@@ -667,7 +667,7 @@ describe('componentMap setters (1.20.5+)', () => {
     const item = new Item(registry.itemsByName.diamond_sword.id, 1)
     const lore = ['{"text":"Lore line"}']
     item.customLore = lore
-    expect(item.componentMap.get('lore')).toStrictEqual({ type: 'lore', data: lore })
+    expect(item.componentMap.get('lore')).toStrictEqual({ type: 'lore', data: [nbt.comp({ text: nbt.string('Lore line') })] })
     expect(item.customLore).toStrictEqual(lore)
   })
 

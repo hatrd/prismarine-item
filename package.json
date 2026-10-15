@@ -17,6 +17,7 @@
   "devDependencies": {
     "@types/node": "^25.4.0",
     "expect": "^29.1.2",
+    "minecraft-protocol": "^1.68.0",
     "mocha": "^11.0.1",
     "prismarine-item": "file:.",
     "standard": "^17.0.0"
